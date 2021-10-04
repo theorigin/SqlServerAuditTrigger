@@ -1,4 +1,8 @@
-﻿CREATE PROC [dbo].[AuditTrigger] 
+IF OBJECT_ID('dbo.AuditTrigger') IS NULL
+  EXEC ('CREATE PROCEDURE dbo.AuditTrigger AS RETURN 0;');
+GO
+
+ALTER PROC dbo.AuditTrigger
   @SourceTableName varchar(255),
   @Deletes bit,
   @Inserts bit,
@@ -147,4 +151,3 @@ BEGIN
     
     EXEC sp_executesql @sql
 END
-
