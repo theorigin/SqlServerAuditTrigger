@@ -25,22 +25,22 @@ BEGIN
             @originalColumns nvarchar(4000) = '',
             @timestampColumn nvarchar(255),
             @uniqueIdentityColumn nvarchar(255),
-			@crlf nvarchar(4) = char(13) + char(10)
+            @crlf nvarchar(4) = char(13) + char(10)
     
     DECLARE @columns TABLE(name nvarchar(255))
     
-	-- No trigger FOR specified
-	IF(@Inserts | @Updates | @Deletes = 0)
+    -- No trigger FOR specified
+    IF(@Inserts | @Updates | @Deletes = 0)
     BEGIN
         RAISERROR
-        (N'One of @Inserts,  @Updates or @Deletes must be specified',
+        (N'One of @Inserts, @Updates or @Deletes must be specified',
         10, -- Severity.
         1 -- State.
         );
         RETURN
     END		
 
-	SET @auditTableExists = (SELECT COUNT(*) FROM sys.objects WHERE OBJECT_ID = OBJECT_ID(@auditTableName) AND type = 'U')
+    SET @auditTableExists = (SELECT COUNT(*) FROM sys.objects WHERE OBJECT_ID = OBJECT_ID(@auditTableName) AND type = 'U')
     SET @auditTriggerNameExists = (SELECT COUNT(*) FROM sys.objects WHERE OBJECT_ID = OBJECT_ID(@auditTriggerName) AND type = 'TR')
 
     IF(@auditTableExists = 1 OR @auditTriggerNameExists = 1)
@@ -65,12 +65,12 @@ BEGIN
         EXEC sp_executesql @sql
     END	
     
-	-- Work out the triggers required
-	IF(@Inserts = 1) SET @auditTriggerFor = @auditTriggerFor + ', INSERT'
-	IF(@Updates = 1) SET @auditTriggerFor = @auditTriggerFor + ', UPDATE'
+    -- Work out the triggers required
+    IF(@Inserts = 1) SET @auditTriggerFor = @auditTriggerFor + ', INSERT'
+    IF(@Updates = 1) SET @auditTriggerFor = @auditTriggerFor + ', UPDATE'
     IF(@Deletes = 1) SET @auditTriggerFor = @auditTriggerFor + ', DELETE'
 
-	SELECT @auditTriggerFor = SUBSTRING(@auditTriggerFor,3,LEN(@auditTriggerFor))
+    SELECT @auditTriggerFor = SUBSTRING(@auditTriggerFor,3,LEN(@auditTriggerFor))
 
     -- create the new audit table as a select * from the original
     SET @sql = 'SELECT REPLICATE('' '',500) AS transactionid, getdate() AS date, REPLICATE('' '',20) AS operation, * INTO ' + @auditTableName + ' FROM ' + @tableName + ' WHERE 1=2'
@@ -78,10 +78,10 @@ BEGIN
     
     -- if it has a timestamp column remove it and add it back in as a binary(8)    
     SELECT @timestampColumn = column_name 
-	FROM INFORMATION_SCHEMA.COLUMNS 
-	WHERE TABLE_NAME = @SourceTableName 
-	AND DATA_TYPE = 'timestamp' 
-	AND TABLE_SCHEMA = @Schema
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = @SourceTableName 
+    AND DATA_TYPE = 'timestamp' 
+    AND TABLE_SCHEMA = @Schema
 
     IF(@timestampColumn IS NOT NULL)
     BEGIN	
@@ -92,14 +92,14 @@ BEGIN
         EXEC sp_executesql @sql
     END	
         
-	-- Turn off uniqueidentity columns		
-	SELECT @uniqueIdentityColumn = column_name 
-	FROM INFORMATION_SCHEMA.COLUMNS 
-	WHERE TABLE_NAME = @SourceTableName 
-	AND COLUMNPROPERTY(OBJECT_ID(TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 
-	AND TABLE_SCHEMA = @Schema
+    -- Turn off uniqueidentity columns		
+    SELECT @uniqueIdentityColumn = column_name 
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = @SourceTableName 
+    AND COLUMNPROPERTY(OBJECT_ID(TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 
+    AND TABLE_SCHEMA = @Schema
 
-	IF(@uniqueIdentityColumn IS NOT NULL)
+    IF(@uniqueIdentityColumn IS NOT NULL)
     BEGIN	
         SET @sql = 'ALTER TABLE ' + @auditTableName + ' DROP COLUMN ' + @uniqueIdentityColumn
         EXEC sp_executesql @sql
@@ -108,21 +108,21 @@ BEGIN
         EXEC sp_executesql @sql
     END	
     
-	-- Get a list of all the columns comma delimited
-	SELECT @originalColumns = ',' + STUFF((SELECT  ', [' + column_name + ']'
-	FROM INFORMATION_SCHEMA.COLUMNS 
-	WHERE TABLE_NAME = @SourceTableName 
-	AND TABLE_SCHEMA = @schema 
-	ORDER BY ORDINAL_POSITION
+    -- Get a list of all the columns comma delimited
+    SELECT @originalColumns = ',' + STUFF((SELECT  ', [' + column_name + ']'
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = @SourceTableName 
+    AND TABLE_SCHEMA = @schema 
+    ORDER BY ORDINAL_POSITION
     FOR XML PATH('')), 1, 1, '')
 
-	-- we also need the original columns prefixed with i. to do a select on the changed data
+    -- we also need the original columns prefixed with i. to do a select on the changed data
     SET @columnNames = REPLACE(@originalColumns,', ',',i.')	   
     
-	-- generate the SQL for the trigger
+    -- generate the SQL for the trigger
     SET @sql =        'CREATE TRIGGER ' + @auditTriggerName + ' ON ' + @tableName + ' FOR ' + @auditTriggerFor + ' AS ' + @crlf
     SET @sql = @sql + 'BEGIN ' + @crlf    
-	SET @sql = @sql + ' SET NOCOUNT ON' + @crlf    
+    SET @sql = @sql + ' SET NOCOUNT ON' + @crlf    
     SET @sql = @sql + ' DECLARE @tranId NVARCHAR(20), ' + @crlf
     SET @sql = @sql + '         @operation NVARCHAR(20), ' + @crlf
     SET @sql = @sql + '         @subOperation NVARCHAR(20), ' + @crlf
@@ -146,17 +146,17 @@ BEGIN
     SET @sql = @sql + ' BEGIN ' + @crlf
     SET @sql = @sql + '  SELECT @operation = ''DELETE'' ' + @crlf
     SET @sql = @sql + ' END ' + @crlf    
-	SET @sql = @sql + ' IF(@operation = ''DELETE'' OR @operation = ''BEFOREUPDATE'') ' + @crlf
-	SET @sql = @sql + ' BEGIN ' + @crlf
-	SET @sql = @sql + '  INSERT INTO ' + @auditTableName + ' (transactionid, date, operation' + @originalColumns + ') SELECT @tranid, getdate(), @operation' + @columnNames + ' FROM #del i' + @crlf
-	SET @sql = @sql + ' END ' + @crlf
+    SET @sql = @sql + ' IF(@operation = ''DELETE'' OR @operation = ''BEFOREUPDATE'') ' + @crlf
+    SET @sql = @sql + ' BEGIN ' + @crlf
+    SET @sql = @sql + '  INSERT INTO ' + @auditTableName + ' (transactionid, date, operation' + @originalColumns + ') SELECT @tranid, SYSUTCDATETIME(), @operation' + @columnNames + ' FROM #del i' + @crlf
+    SET @sql = @sql + ' END ' + @crlf
     SET @sql = @sql + ' IF(@operation = ''INSERT'' OR @operation = ''BEFOREUPDATE'')' + @crlf
-	SET @sql = @sql + ' BEGIN ' + @crlf
-	SET @sql = @sql + '  INSERT INTO ' + @auditTableName + ' (transactionid, date, operation' + @originalColumns + ') SELECT @tranid, getdate(), IsNull(@suboperation, @operation)' + @columnNames + ' FROM #ins i' + @crlf  
-	SET @sql = @sql + ' END ' + @crlf		
+    SET @sql = @sql + ' BEGIN ' + @crlf
+    SET @sql = @sql + '  INSERT INTO ' + @auditTableName + ' (transactionid, date, operation' + @originalColumns + ') SELECT @tranid, SYSUTCDATETIME(), IsNull(@suboperation, @operation)' + @columnNames + ' FROM #ins i' + @crlf  
+    SET @sql = @sql + ' END ' + @crlf		
     SET @sql = @sql + 'END	 ' + @crlf
    
-	print @sql
+    --print @sql
 
     EXEC sp_executesql @sql
 END
