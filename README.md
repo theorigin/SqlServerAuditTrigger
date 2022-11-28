@@ -3,6 +3,8 @@ Creates audit tables and audit triggers
 
 A cheap version of CDC (https://social.technet.microsoft.com/wiki/contents/articles/7726.sql-server-change-data-capture-cdc.aspx)
 
+#### If you're using SQL Server 2016 or later then I would recommend taking a look at Temporal table (https://learn.microsoft.com/en-us/sql/relational-databases/tables/temporal-tables?view=sql-server-ver16) - they are a database feature that brings built-in support for providing information about data stored in the table at any point in time. ####
+
 ### Usage 
 
 ```sql
